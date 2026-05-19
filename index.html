@@ -2,71 +2,90 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Game Susun Barang PRO</title>
+<title>Game Edukasi Susun Barang</title>
 
 <style>
 body {
     font-family: Arial;
     text-align: center;
-    background: linear-gradient(to right, #74ebd5, #ACB6E5);
+    background: linear-gradient(to right, #a8e063, #56ab2f);
 }
 
+/* Tema Islami */
 h1 {
     color: #fff;
+    font-size: 40px;
 }
 
 .container {
     display: flex;
     justify-content: center;
-    gap: 50px;
-    margin-top: 30px;
+    gap: 80px;
+    margin-top: 40px;
 }
 
 .items, .targets {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 20px;
 }
 
 .item {
-    padding: 15px;
-    background: #4CAF50;
+    padding: 25px;
+    font-size: 22px;
+    background: #2E7D32;
     color: white;
     cursor: grab;
-    border-radius: 10px;
-    transition: transform 0.2s;
+    border-radius: 15px;
+    transition: transform 0.2s ease;
 }
 
 .item:active {
     transform: scale(1.1);
 }
 
+.dragging {
+    opacity: 0.5;
+    transform: scale(1.15);
+}
+
 .target {
-    width: 150px;
-    height: 50px;
-    border: 2px dashed #333;
-    line-height: 50px;
-    border-radius: 10px;
+    width: 260px;
+    height: 70px;
+    font-size: 20px;
+    border: 3px dashed #1b5e20;
+    line-height: 70px;
+    border-radius: 15px;
     background: #fff;
     transition: 0.3s;
 }
 
+.target:hover {
+    background: #dcedc8;
+}
+
 .correct {
-    background: #90EE90 !important;
-    transform: scale(1.1);
+    background: #a5d6a7 !important;
+    transform: scale(1.05);
 }
 
 #info {
     margin-top: 20px;
-    font-size: 20px;
+    font-size: 24px;
     color: #fff;
+}
+
+/* Leaderboard */
+#leaderboard {
+    margin-top: 30px;
+    color: white;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🧺 Game Susun Barang PRO</h1>
+<h1>📚 Game Edukasi Susun Barang</h1>
 
 <div id="info">
 Level: <span id="level">1</span> |
@@ -79,10 +98,18 @@ Waktu: <span id="time">30</span>s
     <div class="targets" id="targets"></div>
 </div>
 
+<div id="leaderboard">
+<h2>🏆 Leaderboard</h2>
+<ol id="scoreList"></ol>
+</div>
+
 <!-- Sound -->
 <audio id="benar" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
 <audio id="salah" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
 <audio id="win" src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3"></audio>
+
+<audio id="bgm" loop>
+    <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_115b9b5c79.mp3?filename=happy-kids-113985.mp3" type="audio/mpeg"></audio>
 
 <script>
 let level = 1;
@@ -93,12 +120,34 @@ let timer;
 
 const levels = [
     {
-        items: ["Baju", "Sepatu", "Buku"],
-        targets: ["Lemari", "Rak Sepatu", "Rak Buku"]
+        items: ["Buku","Pensil","Tas"],
+        targets: ["Rak Buku","Tempat Pensil","Rak Tas"]
     },
     {
-        items: ["Sendok", "Piring", "Gelas", "Pisau"],
-        targets: ["Tempat Sendok", "Rak Piring", "Rak Gelas", "Tempat Pisau"]
+        items: [
+            "Al-Qur'an","Sajadah","Sarung",
+            "Mukena","Tas","Buku",
+            "Pulpen","Penghapus","Penggaris"
+        ],
+        targets: [
+            "Rak Qur'an","Tempat Sajadah","Lemari Sarung",
+            "Lemari Mukena","Rak Tas","Rak Buku",
+            "Tempat Pulpen","Tempat Penghapus","Tempat Penggaris"
+        ]
+    },
+    {
+        items: [
+            "Laptop","Mouse","Keyboard",
+            "Flashdisk","Charger","Headset",
+            "Buku","Tas","Pensil",
+            "Pulpen","Penghapus","Penggaris"
+        ],
+        targets: [
+            "Meja Laptop","Tempat Mouse","Rak Keyboard",
+            "Tempat Flashdisk","Tempat Charger","Rak Headset",
+            "Rak Buku","Rak Tas","Tempat Pensil",
+            "Tempat Pulpen","Tempat Penghapus","Tempat Penggaris"
+        ]
     }
 ];
 
@@ -106,7 +155,7 @@ function startLevel() {
     clearInterval(timer);
     document.getElementById("items").innerHTML = "";
     document.getElementById("targets").innerHTML = "";
-    time = 30;
+    time = 30 + (level * 5);
     document.getElementById("time").textContent = time;
 
     let data = levels[level - 1];
@@ -118,7 +167,14 @@ function startLevel() {
         el.id = item;
         el.draggable = true;
 
-        el.addEventListener("dragstart", () => draggedItem = el);
+        el.addEventListener("dragstart", () => {
+            draggedItem = el;
+            el.classList.add("dragging");
+        });
+
+        el.addEventListener("dragend", () => {
+            el.classList.remove("dragging");
+        });
 
         document.getElementById("items").appendChild(el);
     });
@@ -162,10 +218,32 @@ function startTimer() {
 
         if (time === 0) {
             clearInterval(timer);
+            saveScore();
             alert("⏰ Waktu habis!");
             startLevel();
         }
     }, 1000);
+}
+
+/* Leaderboard */
+function saveScore() {
+    let scores = JSON.parse(localStorage.getItem("scores")) || [];
+    scores.push(score);
+    scores.sort((a,b) => b - a);
+    scores = scores.slice(0,5);
+    localStorage.setItem("scores", JSON.stringify(scores));
+    showScores();
+}
+
+function showScores() {
+    let scores = JSON.parse(localStorage.getItem("scores")) || [];
+    let list = document.getElementById("scoreList");
+    list.innerHTML = "";
+    scores.forEach(s => {
+        let li = document.createElement("li");
+        li.textContent = s;
+        list.appendChild(li);
+    });
 }
 
 function levelUp() {
@@ -177,11 +255,13 @@ function levelUp() {
         alert("🎉 Naik Level!");
         startLevel();
     } else {
-        alert("🏆 Kamu Menang Semua Level!");
+        saveScore();
+        alert("🏆 Kamu Menang!");
         location.reload();
     }
 }
 
+showScores();
 startLevel();
 </script>
 
